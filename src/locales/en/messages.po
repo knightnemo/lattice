@@ -18131,6 +18131,14 @@ msgstr "This is the earliest version"
 msgid "This Lattice runs without a desktop, so it cannot open apps or folders on its computer."
 msgstr "This Lattice runs without a desktop, so it cannot open apps or folders on its computer."
 
+#: src/platform/host-errors-overleaf.ts
+msgid "This Lattice runs without a desktop, so it cannot open the Overleaf sign-in window."
+msgstr "This Lattice runs without a desktop, so it cannot open the Overleaf sign-in window."
+
+#: src/platform/host-errors-workspace.ts
+msgid "This Lattice runs without a desktop, so it cannot show a file picker on its computer."
+msgstr "This Lattice runs without a desktop, so it cannot show a file picker on its computer."
+
 #: src/platform/host-errors-workspace.ts
 msgid "This Lattice runs without a desktop, so the workspace stays in your browser."
 msgstr "This Lattice runs without a desktop, so the workspace stays in your browser."

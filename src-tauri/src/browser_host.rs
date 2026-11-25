@@ -87,6 +87,19 @@ pub(crate) fn require_desktop() -> Result<(), String> {
     Ok(())
 }
 
+const NO_DESKTOP_SIGN_IN: &str =
+    "This Lattice runs without a desktop, so it cannot open the Overleaf sign-in window.";
+
+/// Refuse Overleaf's sign-in window (`overleaf_begin_login`) on a headless
+/// host: it would open on a display nobody sees, and the tab would poll for
+/// a sign-in that never comes.
+pub(crate) fn require_desktop_for_sign_in() -> Result<(), String> {
+    if launched_headless() {
+        return Err(NO_DESKTOP_SIGN_IN.to_string());
+    }
+    Ok(())
+}
+
 /// What a headless host prints, and exits on, when it cannot open a display:
 /// GTK would otherwise abort before the logger exists, with status 101 and
 /// no word (xlib_threads.rs).
@@ -140,6 +153,10 @@ struct RunningServer {
 struct HostBridgeConfig<'a> {
     token: &'a str,
     port: u16,
+    /// The hidden host page refuses what would show something on the host's
+    /// display (src/platform/browser-host-bridge.ts); left out everywhere else.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    headless: bool,
 }
 
 fn bind_browser_listener() -> io::Result<TcpListener> {
@@ -497,8 +514,9 @@ fn browser_origin(app: &tauri::AppHandle, port: u16) -> String {
 fn build_host_window(
     app: &tauri::AppHandle, host_label: &str, token: &str, port: u16,
 ) -> Result<(), String> {
-    let config = serde_json::to_string(&HostBridgeConfig { token, port })
-        .map_err(|error| format!("Could not configure browser access: {error}"))?;
+    let config =
+        serde_json::to_string(&HostBridgeConfig { token, port, headless: launched_headless() })
+            .map_err(|error| format!("Could not configure browser access: {error}"))?;
     tauri::WebviewWindowBuilder::new(app, host_label, WebviewUrl::App("index.html".into()))
         .title("")
         .visible(false)

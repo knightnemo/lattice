@@ -65,9 +65,12 @@ describe("a tab of a host with a desktop", () => {
     void invoke("plugin:opener|open_url", { url: "https://example.org/" });
     void invoke("plugin:opener|reveal_item_in_dir", { path: "/projects/b" });
     void invoke("plugin:dialog|message", { message: "Discard the draft?", buttons: "OkCancel" });
-    await vi.waitFor(() => expect(relayed(socket)).toHaveLength(3));
-    expect(relayed(socket).map(({ command }) => command))
-      .toEqual(["plugin:opener|open_url", "plugin:opener|reveal_item_in_dir", "plugin:dialog|message"]);
+    void invoke("plugin:dialog|open", { options: { directory: true } });
+    void invoke("overleaf_begin_login", { title: "Sign in to Overleaf", backLabel: "Back" });
+    await vi.waitFor(() => expect(relayed(socket)).toHaveLength(5));
+    expect(relayed(socket).map(({ command }) => command)).toEqual([
+      "plugin:opener|open_url", "plugin:opener|reveal_item_in_dir", "plugin:dialog|message", "browser_dialog_open", "overleaf_begin_login",
+    ]);
     expect(open).not.toHaveBeenCalled();
     expect((await import("./headless-host")).isHeadlessHost()).toBe(false);
   });
@@ -114,6 +117,32 @@ describe("a tab of a headless host", () => {
     await expect(message("Saved.", "Lattice")).resolves.toBe("Ok");
     expect(alerted).toHaveBeenCalledWith("Lattice\n\nSaved.");
     expect(relayed(socket)).toEqual([]);
+  });
+
+  it("says it cannot show a file picker, and answers as Cancel, rather than wait on one nobody sees", async () => {
+    const { socket } = await loadTab({ headless: true });
+    const { open: openDialog, save } = await import("@tauri-apps/plugin-dialog");
+    const alerted = vi.spyOn(window, "alert").mockReturnValue(undefined);
+    await expect(openDialog({ directory: true, title: "Open a LaTeX project" })).resolves.toBeNull();
+    await expect(save({ defaultPath: "paper.zip" })).resolves.toBeNull();
+    expect(alerted).toHaveBeenCalledTimes(2);
+    expect(alerted).toHaveBeenLastCalledWith("This Lattice runs without a desktop, so it cannot show a file picker on its computer.");
+    expect(relayed(socket)).toEqual([]);
+  });
+
+  it("refuses Overleaf's sign-in window, which would open on the host's display", async () => {
+    const { socket, invoke } = await loadTab({ headless: true });
+    await expect(invoke("overleaf_begin_login", { title: "Sign in to Overleaf", backLabel: "Back" }))
+      .rejects.toThrow("This Lattice runs without a desktop, so it cannot open the Overleaf sign-in window.");
+    expect(relayed(socket)).toEqual([]);
+  });
+
+  it.each(["YesNoCancel", { YesNoCancelCustom: ["Save", "Don't save", "Cancel"] }])("fails a three-answer dialog (%j) rather than lose an answer", async (buttons) => {
+    const { invoke } = await loadTab({ headless: true });
+    const confirmed = vi.spyOn(window, "confirm");
+    await expect(invoke("plugin:dialog|message", { message: "Save the changes?", buttons }))
+      .rejects.toThrow("A dialog with three answers cannot be shown in a headless host's tab yet.");
+    expect(confirmed).not.toHaveBeenCalled();
   });
 
   it("relays everything else to the host, project opening included", async () => {

@@ -1266,6 +1266,11 @@ pub(super) static ENTRIES: &[Entry] = &[
         text: Text::Message("Browser dialogs are only available to a browser workspace.", &[]),
     },
     Entry {
+        file: "browser_host/dialogs.rs",
+        literal: "This Lattice runs without a desktop, so it cannot show a file picker on its computer.",
+        text: Text::Message("This Lattice runs without a desktop, so it cannot show a file picker on its computer.", &[]),
+    },
+    Entry {
         file: "format_latex.rs",
         literal: "Format currently supports .tex, .cls, and .sty files.",
         text: Text::Message("Format currently supports .tex, .cls, and .sty files.", &[]),
@@ -1404,6 +1409,11 @@ pub(super) static ENTRIES: &[Entry] = &[
         file: "ipc/overleaf.rs",
         literal: "Could not open the Overleaf sign-in window: {error}",
         text: Text::Message("Could not open the Overleaf sign-in window: {error}", &[("error", Arg::Param(0))]),
+    },
+    Entry {
+        file: "browser_host.rs",
+        literal: "This Lattice runs without a desktop, so it cannot open the Overleaf sign-in window.",
+        text: Text::Message("This Lattice runs without a desktop, so it cannot open the Overleaf sign-in window.", &[]),
     },
     Entry {
         file: "overleaf_rt/codec.rs",

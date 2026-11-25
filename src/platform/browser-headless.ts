@@ -4,7 +4,8 @@
  * host never calls the system opener (browser_host.rs): nobody would see the
  * browser, file manager or window it started. This tab opens links in its own
  * browser instead, answers message and confirm dialogs itself, and refuses to
- * show the host's files and folders. Projects open in this tab
+ * show the host's files and folders, a file picker or Overleaf's sign-in
+ * window, saying why. Projects open in this tab
  * (`open_project_window`'s `openHere`). Only a host started
  * that way says `headless` in its session reply, and a tab of any other host
  * never loads this module.
@@ -23,6 +24,15 @@ const MESSAGES = {
   "link-refused": [
     "Lattice opens only web, email and phone links.",
     "Lattice 只打开网页、电子邮件和电话链接。",
+  ],
+  // The host's own NO_DESKTOP_FILE_PICKER (browser_host/dialogs.rs) and NO_DESKTOP_SIGN_IN (browser_host.rs).
+  "no-file-picker": [
+    "This Lattice runs without a desktop, so it cannot show a file picker on its computer.",
+    "此 Lattice 在没有桌面的电脑上运行，无法在那台电脑上显示文件选择窗口。",
+  ],
+  "no-sign-in-window": [
+    "This Lattice runs without a desktop, so it cannot open the Overleaf sign-in window.",
+    "此 Lattice 在没有桌面的电脑上运行，无法打开 Overleaf 登录窗口。",
   ],
   // The browser names its own buttons, so a dialog's own OK says what it does.
   "ok-means": ["OK: {label}", "确定：{label}"],
@@ -50,19 +60,37 @@ export const HEADLESS_COMMANDS = new Map<string, (args: Record<string, unknown>)
   ["plugin:opener|reveal_item_in_dir", noDesktop],
   // The native dialog would open on the host's hidden display and wait there.
   ["plugin:dialog|message", answerMessage],
+  // So would a file picker. Most callers log a failure without showing it, and
+  // treat null as Cancel, so the tab says why and answers as Cancel.
+  ["plugin:dialog|open", noFilePicker],
+  ["plugin:dialog|save", noFilePicker],
+  ["overleaf_begin_login", () => {
+    throw new Error(message("no-sign-in-window"));
+  }],
 ]);
+
+function noFilePicker(): null {
+  window.alert(message("no-file-picker"));
+  return null;
+}
 
 /** The OK and Cancel answers of `buttons`, as the dialog plugin names them, or null for a dialog with only OK. */
 function dialogAnswers(buttons: unknown): [ok: string, cancel: string] | null {
   if (buttons === "OkCancel") return ["Ok", "Cancel"];
   if (buttons === "YesNo") return ["Yes", "No"];
-  // No third button here: closing is the cautious answer.
-  if (buttons === "YesNoCancel") return ["Yes", "Cancel"];
+  // A browser confirm has two answers. Mapping a third ("Don't save") onto
+  // one of them would lose it without a word, so such a dialog fails here
+  // until something needs one and this tab learns to ask it.
+  if (buttons === "YesNoCancel") throw new Error(THREE_ANSWERS);
   if (typeof buttons !== "object" || buttons === null) return null;
   const { OkCancelCustom: okCancel, YesNoCancelCustom: yesNoCancel } = buttons as Record<string, unknown>;
-  const labels = Array.isArray(okCancel) ? okCancel : Array.isArray(yesNoCancel) ? [yesNoCancel[0], yesNoCancel[2]] : null;
+  if (yesNoCancel !== undefined) throw new Error(THREE_ANSWERS);
+  const labels = Array.isArray(okCancel) ? okCancel : null;
   return labels?.every((label) => typeof label === "string") ? [labels[0], labels[1]] : null;
 }
+
+/** For whoever adds the first three-answer dialog: not shown to people today. */
+const THREE_ANSWERS = "A dialog with three answers cannot be shown in a headless host's tab yet.";
 
 /**
  * `plugin:dialog|message`, which `message`, `ask` and `confirm` all send,

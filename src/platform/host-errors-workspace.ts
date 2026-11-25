@@ -199,6 +199,7 @@ export const WORKSPACE_HOST_ERRORS: readonly HostErrorEntry[] = [
   ["browser_host.rs", "This Lattice runs without a desktop, so the workspace stays in your browser.", () => t`This Lattice runs without a desktop, so the workspace stays in your browser.`],
   ["browser_host.rs", "This Lattice runs without a desktop, so it cannot open apps or folders on its computer.", () => t`This Lattice runs without a desktop, so it cannot open apps or folders on its computer.`],
   ["browser_host/dialogs.rs", "Browser dialogs are only available to a browser workspace.", () => t`Browser dialogs are only available to a browser workspace.`],
+  ["browser_host/dialogs.rs", "This Lattice runs without a desktop, so it cannot show a file picker on its computer.", () => t`This Lattice runs without a desktop, so it cannot show a file picker on its computer.`],
 
   // Formatting, the arXiv export, PDF review and the language server
   ["format_latex.rs", "Format currently supports .tex, .cls, and .sty files.", () => t`Format currently supports .tex, .cls, and .sty files.`],
